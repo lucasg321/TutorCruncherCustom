@@ -5,7 +5,10 @@ import datetime
 import sys
 import yagmail
 
-api_key = ''
+f = open(".env", "r")
+api_key = f.readline().split("=")[1].strip('\n')
+email_password = f.readline().split("=")[1].strip('\n')
+f.close()
 
 headers = {'Authorization': 'token ' + api_key}
 
@@ -122,7 +125,7 @@ for key in lesson_service_dict:
     print(month)
     print(client_managers)
 
-yag = yagmail.SMTP({'verify982@gmail.com': 'TutorHelper'}, '')
+yag = yagmail.SMTP({'verify982@gmail.com': 'TutorHelper'}, email_password)
 # yag = yagmail.SMTP()
 contents = ['This is the body, and here is just text http://somedomain/image.png',
             'You can find an audio file attached.']
