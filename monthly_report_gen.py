@@ -4,6 +4,7 @@ import pprint, requests, json
 import datetime
 import sys
 import yagmail
+import xlsxwriter
 
 f = open(".env", "r")
 api_key = f.readline().split("=")[1].strip('\n')
@@ -30,17 +31,22 @@ for data in response['results']:
         except:
             continue
 
+    current_month = datetime.datetime.now(datetime.timezone.utc).month
+
     sub = 1
+    month_string = (date.today().replace(day=1) - datetime.timedelta(days=1)).strftime("%B")
     if len(sys.argv) > 1:
-        current_month = int(sys.argv[1])
         if sys.argv[1] == "mid_month":
             sub = 0
-    else:
-        current_month = datetime.datetime.now(datetime.timezone.utc).month
+            month_string = (date.today().replace(day=1)).strftime("%B")
+        else:
+            current_month = int(sys.argv[1])
+            month_string = (date.today().replace(day=1) - datetime.timedelta(days=1)).strftime("%B")
 
     month = int(current_month) - sub
     if month <= 0:
         month = 11
+
     # Get a list of service ids with completed or chargeable orders in the specified month (previous month if unspecified)
     # Store all service ids in a dictionary as the key with a list of corresponding lessons as values
     if (data['status'] == "complete" or data['status'] == "cancelled-chargeable") and int(date.month) == month:
@@ -51,6 +57,20 @@ for data in response['results']:
             lesson_service_dict[data['service']['id']] = []
             lesson_service_dict[data['service']['id']].append(data['id'])
 
+subject = 'Monthly Tutor Report'
+if len(sys.argv) > 1 and sys.argv[1] == "mid_month":
+    subject = 'Mid-Month Tutor Report'
+
+year = datetime.datetime.now(datetime.timezone.utc).year
+workbook = xlsxwriter.Workbook(str(subject + ' - ' + str(month_string) + ', ' + str(year) + '.xlsx'))
+worksheet = workbook.add_worksheet()
+worksheet.write('A1', 'Client Manager')
+worksheet.write('B1', 'Month')
+worksheet.write('C1', 'Client')
+worksheet.write('D1', 'Hours')
+worksheet.write('E1', 'Revenue')
+worksheet.write('F1', 'Profit')
+i = 2
 # Each service id is one row in the outputted table
 for key in lesson_service_dict:
     client_managers_list = []
@@ -101,6 +121,8 @@ for key in lesson_service_dict:
             print("Error retreiving tutor/contractor charge rate.")
             continue
         # Caclulate the profit and revenue for the individual service/appointment
+
+        # TODO: if multiple clients create a new entry for each one - if len(list(set(client_names))) > 1:
         try:
             service_revenue = service_revenue + (hours * student_charge_rate)
             service_profit = service_profit + (hours * tutor_pay_rate)
@@ -119,17 +141,27 @@ for key in lesson_service_dict:
             print("No associated client manager")
             client_managers_list.append("No Associated Client Manager")
     client_managers = ",".join(list(set(client_managers_list)))
-    print(clients)
-    print(service_revenue)
-    print(service_profit)
-    print(month)
-    print(client_managers)
+    worksheet.write('A'+str(i), client_managers)
+    worksheet.write('B'+str(i), month_string)
+    worksheet.write('C'+str(i), clients)
+    worksheet.write('D'+str(i), hours)
+    worksheet.write('E'+str(i), service_revenue)
+    worksheet.write('F'+str(i), service_profit)
+
+    i += 1
+
+workbook.close()
 
 yag = yagmail.SMTP({'verify982@gmail.com': 'TutorHelper'}, email_password)
-# yag = yagmail.SMTP()
-contents = ['This is the body, and here is just text http://somedomain/image.png',
-            'You can find an audio file attached.']
-yag.send('lgigliozzi@ryerson.ca', 'subject', contents)
+contents = ['Hello!',
+            '\n',
+            'Your ' + subject + ' for ' + str(month_string) + ', ' + str(year) + ' is attached to this email.',
+            '\n',
+            ' Best,',
+            'TutorHelper', str(subject + ' - ' + str(month_string) + ', ' + str(year) + '.xlsx')]
 
-# Format properly now
-# Send email with table
+# Send email to users
+yag.send('lgigliozzi@ryerson.ca', subject, contents)
+
+# Send to me for monitoring and debug
+yag.send('lgigliozzi@ryerson.ca', subject, contents)
