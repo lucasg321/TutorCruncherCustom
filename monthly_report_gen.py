@@ -141,6 +141,8 @@ for key in lesson_service_dict:
             print("No associated client manager")
             client_managers_list.append("No Associated Client Manager")
     client_managers = ",".join(list(set(client_managers_list)))
+
+    # Write data to spreadsheet
     worksheet.write('A'+str(i), client_managers)
     worksheet.write('B'+str(i), month_string)
     worksheet.write('C'+str(i), clients)
@@ -152,6 +154,7 @@ for key in lesson_service_dict:
 
 workbook.close()
 
+# Send email with spreadsheet attached
 yag = yagmail.SMTP({'verify982@gmail.com': 'TutorHelper'}, email_password)
 contents = ['Hello!',
             '\n',
