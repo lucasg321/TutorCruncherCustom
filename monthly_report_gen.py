@@ -5,7 +5,7 @@ import datetime
 import sys
 import yagmail
 
-api_key = '472c5b4df1dcfe2cd5f93b242230a81198fe330e'
+api_key = ''
 
 headers = {'Authorization': 'token ' + api_key}
 
